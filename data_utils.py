@@ -28,7 +28,7 @@ def swat(seq_length, seq_step, num_signals, randomize=False):
     train = np.loadtxt(open('./data/swat.csv'), delimiter=',')
     print('Loaded swat from .csv')
     m, n = train.shape # m=496800, n=52
-    for i in range(n - 1):
+    for i in range(n - 1): # 归一化
         A = max(train[:, i])
         if A != 0:
             train[:, i] /= max(train[:, i])
@@ -137,6 +137,7 @@ def swat_test(seq_length, seq_step, num_signals, randomize=False):
     test = np.loadtxt(open('./data/swat_a.csv'), delimiter=',')
     print('Loaded swat_a from .csv')
     m, n = test.shape  # m1=449919, n1=52
+
     for i in range(n - 1):
         B = max(test[:, i])
         if B != 0:
