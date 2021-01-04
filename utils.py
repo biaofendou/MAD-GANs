@@ -13,7 +13,7 @@ def rgan_options_parser():
     parser.add_argument('--settings_file', help='json file of settings, overrides everything else', type=str, default='')
     # options pertaining to data
     parser.add_argument('--data', help='what kind of data to train with?',
-            default='gp_rbf',
+            default='swat_test',
             choices=['gp_rbf', 'sine', 'mnist', 'load'])
     # parser.add_argument('--num_samples', type=int, help='how many training examples \
     #                 to generate?', default=28*5*100)
@@ -65,8 +65,8 @@ def rgan_options_parser():
             of generator training')
     parser.add_argument('--E_rounds', type=int, default=1, help='number of rounds \
                of encoder training')
-    # parser.add_argument('--use_time', type=bool, default=False, help='enforce \
-    #         latent dimension 0 to correspond to time')
+    parser.add_argument('--use_time', type=bool, default=False, help='enforce \
+            latent dimension 0 to correspond to time')
     parser.add_argument('--shuffle', type=bool, default=True)
     parser.add_argument('--eval_mul', type=bool, default=False)
     parser.add_argument('--eval_an', type=bool, default=False)

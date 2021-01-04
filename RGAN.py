@@ -33,10 +33,10 @@ data_path = './experiments/data/' + settings['data_load_from'] + '.data.npy'
 print('Loading data from', data_path)
 settings["eval_an"] = False
 settings["eval_single"] = False
-samples, labels, index = data_utils.get_data(settings["data"], settings["seq_length"], settings["seq_step"],
+samples, labels, index = data_utils.get_data(settings["data"], settings["seq_length"], settings["seq_length"],
                                              settings["num_signals"], settings['sub_id'], settings["eval_single"],
                                              settings["eval_an"], data_path)
-print('samples_size:',samples.shape)
+print('samples_size:', samples.shape)
 # -- number of variables -- #
 num_variables = samples.shape[2]
 print('num_variables:', num_variables)
@@ -46,6 +46,19 @@ for (k, v) in settings.items(): print(v, '\t', k)
 # add the settings to local environment
 # WARNING: at this point a lot of variables appear
 locals().update(settings)
+# 参数
+identifier = settings["identifier"]
+batch_size = settings["batch_size"]
+seq_length = settings["seq_length"]
+latent_dim = settings["latent_dim"]
+learning_rate = settings["learning_rate"]
+l2norm_bound = settings["l2norm_bound"]
+batches_per_lot = settings["batches_per_lot"]
+dp_sigma = settings["dp_sigma"]
+dp = settings["dp"]
+num_epochs = settings["num_epochs"]
+sub_id = settings["sub_id"]
+
 json.dump(settings, open('./experiments/settings/' + identifier + '.txt', 'w'), indent=0)
 
 # --- build model --- #
@@ -65,7 +78,6 @@ D_solver, G_solver, priv_accountant = model.GAN_solvers(D_loss, G_loss, learning
                                                         batches_per_lot=batches_per_lot, sigma=dp_sigma, dp=dp)
 # model: generate samples for visualization
 G_sample = model.generator(Z, **generator_settings, reuse=True)
-
 
 # # --- evaluation settings--- #
 #
@@ -98,11 +110,11 @@ G_sample = model.generator(Z, **generator_settings, reuse=True)
 
 
 # --- run the program --- #
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
+config = tf.ConfigProto()  # 函数用在创建session的时候，用来对session进行参数配置
+config.gpu_options.allow_growth = True  # 动态申请显存
 sess = tf.Session(config=config)
 # sess = tf.Session()
-sess.run(tf.global_variables_initializer())
+sess.run(tf.global_variables_initializer())  # 初始化所有变量
 
 # # -- plot the real samples -- #
 vis_real_indices = np.random.choice(len(samples), size=16)
@@ -119,7 +131,7 @@ t0 = time()
 MMD = np.zeros([num_epochs, ])
 
 for epoch in range(num_epochs):
-# for epoch in range(1):
+    # for epoch in range(1):
     # -- train epoch -- #
     D_loss_curr, G_loss_curr = model.train_epoch(epoch, samples, labels, sess, Z, X, D_loss, G_loss,
                                                  D_solver, G_solver, **train_settings)
@@ -185,6 +197,6 @@ for epoch in range(num_epochs):
 np.save('./experiments/plots/gs/' + identifier + '_' + 'MMD.npy', MMD)
 
 end = time() - begin
-print('Training terminated | Training time=%d s' %(end) )
+print('Training terminated | Training time=%d s' % (end))
 
 print("Training terminated | training time = %ds  " % (time() - begin))

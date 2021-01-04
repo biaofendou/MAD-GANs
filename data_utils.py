@@ -5,7 +5,7 @@ import re
 from time import time
 import json
 import random
-
+from sklearn.preprocessing import MaxAbsScaler
 import model
 
 from scipy.spatial.distance import pdist, squareform
@@ -25,8 +25,17 @@ def swat(seq_length, seq_step, num_signals, randomize=False):
     """ Load and serialise """
     # train = np.load('./data/swat.npy')
     # print('Loaded swat from .npy')
-    train = np.loadtxt(open('./data/swat.csv'), delimiter=',')
-    print('Loaded swat from .csv')
+    train = np.loadtxt(open('./data/SWaT_Dataset_Attack_v0_52.csv'), delimiter=',')
+    # train = pd.read_csv('./data/SWaT_Dataset_Attack_v0.csv', header=None, low_memory=False)
+    # m, n = train.shape  # m=496800, n=52
+    # samples = train.iloc[1:, 1:n - 1]
+    # labels = train.iloc[1:, n - 1]  # the last colummn is label
+    # scaler = MaxAbsScaler()
+    # samples = scaler.fit_transform(samples)
+    # labels[labels != 'Normal'] = 0
+    # labels[labels == 'Normal'] = 1
+    # train=train.values
+    # print('Loaded swat from .csv')
     m, n = train.shape # m=496800, n=52
     for i in range(n - 1): # 归一化
         A = max(train[:, i])
@@ -55,6 +64,13 @@ def swat(seq_length, seq_step, num_signals, randomize=False):
     ###################################
     # -- the best PC dimension is chosen pc=5 -- #
     n_components = num_signals
+    '''
+    n_components:指定希望PCA降维后的特征维度数目,是一个大于等于1的整数,
+    也可以指定主成分的方差和所占的最小比例阈值，让PCA类自己去根据样本特征方差来决定降维到的维度数，此时n_components是一个（0，1]之间的数。
+    输入[0,1]之间的浮点数，并且让参数svd_solver =='full'，表示希望降维后的总解释性方差占比大于n_components指定的百分比，即是说，希望保留百分之多少的信息量。
+    比如说，如果我们希望保留97%的信息量，就可以输入n_components = 0.97，PCA会自动选出能够让保留的信息量超过97%的特征数量。
+    
+    '''
     pca = PCA(n_components, svd_solver='full')
     pca.fit(X_n)
     ex_var = pca.explained_variance_ratio_
@@ -71,9 +87,12 @@ def swat(seq_length, seq_step, num_signals, randomize=False):
     # seq_length = 7200
     num_samples = (samples.shape[0]-seq_length)//seq_step
     print("num_samples:", num_samples)
+    print("shape:",samples.shape)
     print("num_signals:", num_signals)
     aa = np.empty([num_samples, seq_length, num_signals])
     bb = np.empty([num_samples, seq_length, 1])
+    print("seq_step:", seq_step)
+    print("seq_length:", seq_length)
 
     for j in range(num_samples):
        bb[j, :, :] = np.reshape(labels[(j * seq_step):(j * seq_step + seq_length)], [-1,1])
@@ -134,7 +153,7 @@ def swat_test(seq_length, seq_step, num_signals, randomize=False):
     """ Load and serialise """
     # test = np.load('./data/swat_a.npy')
     # print('Loaded swat_a from .npy')
-    test = np.loadtxt(open('./data/swat_a.csv'), delimiter=',')
+    test  = np.loadtxt(open('./data/SWaT_Dataset_Attack_v0_52.csv'), delimiter=',')
     print('Loaded swat_a from .csv')
     m, n = test.shape  # m1=449919, n1=52
 

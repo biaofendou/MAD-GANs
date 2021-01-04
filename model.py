@@ -20,14 +20,16 @@ from differential_privacy.privacy_accountant.tf import accountant
 Most of the models are copied from https://github.com/ratschlab/RGAN
 """
 
+
 # --- to do with latent space --- #
 
 def sample_Z(batch_size, seq_length, latent_dim, use_time=False, use_noisy_time=False):
     sample = np.float32(np.random.normal(size=[batch_size, seq_length, latent_dim]))
     if use_time:
         print('WARNING: use_time has different semantics')
-        sample[:, :, 0] = np.linspace(0, 1.0 / seq_length, num=seq_length)
+        sample[:, :, 0] = np.linspace(0, 1.0 / seq_length, num=seq_length)  # 即从0到1闭区间，划分为num个数据点
     return sample
+
 
 # --- samples for testing ---#
 
@@ -43,6 +45,7 @@ def sample_T(batch_size, batch_idx):
     I_mb = idx_aaa[start_pos:end_pos, :, :]
     return T_mb, L_mb, I_mb, num_samples_t
 
+
 def sample_TT(batch_size):
     samples_aaa = np.load('./data/samples_aa.npy')
     labels_aaa = np.load('./data/labels_aa.npy')
@@ -53,10 +56,15 @@ def sample_TT(batch_size):
     I_mb = idx_aaa[T_indices, :, :]
     return T_mb, L_mb, I_mb
 
+
 # --- to do with training --- #
 def train_epoch(epoch, samples, labels, sess, Z, X, D_loss, G_loss, D_solver, G_solver,
                 batch_size, use_time, D_rounds, G_rounds, seq_length,
                 latent_dim, num_signals):
+    '''
+        D_loss_curr, G_loss_curr = model.train_epoch(epoch, samples, labels, sess, Z, X, D_loss, G_loss,
+                                                 D_solver, G_solver, **train_settings)
+    '''
     """
     Train generator and discriminator for one epoch.
     """
@@ -81,12 +89,10 @@ def train_epoch(epoch, samples, labels, sess, Z, X, D_loss, G_loss, D_solver, G_
     D_loss_curr = np.mean(D_loss_curr)
     G_loss_curr = np.mean(G_loss_curr)
 
-
     return D_loss_curr, G_loss_curr
 
 
 def GAN_loss(Z, X, generator_settings, discriminator_settings):
-
     # normal GAN
     G_sample = generator(Z, **generator_settings)
 
@@ -98,20 +104,22 @@ def GAN_loss(Z, X, generator_settings, discriminator_settings):
     # and not mutually exclusive.
     # logits: predicted labels??
 
-    D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_real, labels=tf.ones_like(D_logit_real)), 1)
-    D_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_fake, labels=tf.zeros_like(D_logit_fake)), 1)
+    D_loss_real = tf.reduce_mean(
+        tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_real, labels=tf.ones_like(D_logit_real)), 1)
+    D_loss_fake = tf.reduce_mean(
+        tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_fake, labels=tf.zeros_like(D_logit_fake)), 1)
 
     D_loss = D_loss_real + D_loss_fake
 
-
     # G_loss = tf.reduce_mean(tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_fake, labels=tf.ones_like(D_logit_fake)), axis=1))
-    G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_fake, labels=tf.ones_like(D_logit_fake)), 1)
-
+    G_loss = tf.reduce_mean(
+        tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_fake, labels=tf.ones_like(D_logit_fake)), 1)
 
     return D_loss, G_loss
 
 
-def GAN_solvers(D_loss, G_loss, learning_rate, batch_size, total_examples, l2norm_bound, batches_per_lot, sigma, dp=False):
+def GAN_solvers(D_loss, G_loss, learning_rate, batch_size, total_examples, l2norm_bound, batches_per_lot, sigma,
+                dp=False):
     """
     Optimizers
     """
@@ -135,10 +143,12 @@ def GAN_solvers(D_loss, G_loss, learning_rate, batch_size, total_examples, l2nor
                                                            [eps, delta],
                                                            sanitizer=gaussian_sanitizer,
                                                            sigma=sigma,
-                                                           batches_per_lot=batches_per_lot).minimize(D_loss, var_list=discriminator_vars)
+                                                           batches_per_lot=batches_per_lot).minimize(D_loss,
+                                                                                                     var_list=discriminator_vars)
     else:
         D_loss_mean_over_batch = tf.reduce_mean(D_loss)
-        D_solver = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(D_loss_mean_over_batch, var_list=discriminator_vars)
+        D_solver = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(D_loss_mean_over_batch,
+                                                                                           var_list=discriminator_vars)
         priv_accountant = None
     G_loss_mean_over_batch = tf.reduce_mean(G_loss)
     G_solver = tf.train.AdamOptimizer().minimize(G_loss_mean_over_batch, var_list=generator_vars)
@@ -146,16 +156,15 @@ def GAN_solvers(D_loss, G_loss, learning_rate, batch_size, total_examples, l2nor
 
 
 # --- to do with the model --- #
-
+#Z, X, T = model.create_placeholders(batch_size, seq_length, latent_dim, num_variables)
 def create_placeholders(batch_size, seq_length, latent_dim, num_signals):
-
     Z = tf.placeholder(tf.float32, [batch_size, seq_length, latent_dim])
     X = tf.placeholder(tf.float32, [batch_size, seq_length, num_signals])
     T = tf.placeholder(tf.float32, [batch_size, seq_length, num_signals])
     return Z, X, T
 
-def generator(z, hidden_units_g, seq_length, batch_size, num_signals, reuse=False, parameters=None, learn_scale=True):
 
+def generator(z, hidden_units_g, seq_length, batch_size, num_signals, reuse=False, parameters=None, learn_scale=True):
     """
     If parameters are supplied, initialise as such
     """
@@ -163,9 +172,9 @@ def generator(z, hidden_units_g, seq_length, batch_size, num_signals, reuse=Fals
         if reuse:
             scope.reuse_variables()
         if parameters is None:
-            W_out_G_initializer = tf.truncated_normal_initializer()
+            W_out_G_initializer = tf.truncated_normal_initializer()#从截断的正态分布中输出随机值，如果生成的值大于平均值2个标准偏差的值则丢弃重新选择
             b_out_G_initializer = tf.truncated_normal_initializer()
-            scale_out_G_initializer = tf.constant_initializer(value=1.0)
+            scale_out_G_initializer = tf.constant_initializer(value=1.0)#初始化为常数
             lstm_initializer = None
             bias_start = 1.0
         else:
@@ -178,7 +187,10 @@ def generator(z, hidden_units_g, seq_length, batch_size, num_signals, reuse=Fals
                 assert learn_scale
             lstm_initializer = tf.constant_initializer(value=parameters['generator/rnn/lstm_cell/weights:0'])
             bias_start = parameters['generator/rnn/lstm_cell/biases:0']
-
+        '''
+        tf.Variable()用于生成一个初始值为initial-value的变量；必须指定初始化值。
+        tf.get_variable()获取已存在的变量(要求不仅名字，而且初始化方法等各个参数都一样)，如果不存在，就新建一个；可以用各种初始化方法，不用明确指定值。
+        '''
         W_out_G = tf.get_variable(name='W_out_G', shape=[hidden_units_g, num_signals],
                                   initializer=W_out_G_initializer)
         b_out_G = tf.get_variable(name='b_out_G', shape=num_signals, initializer=b_out_G_initializer)
@@ -198,9 +210,9 @@ def generator(z, hidden_units_g, seq_length, batch_size, num_signals, reuse=Fals
             sequence_length=[seq_length] * batch_size,
             inputs=inputs)
         rnn_outputs_2d = tf.reshape(rnn_outputs, [-1, hidden_units_g])
-        logits_2d = tf.matmul(rnn_outputs_2d, W_out_G) + b_out_G #out put weighted sum
+        logits_2d = tf.matmul(rnn_outputs_2d, W_out_G) + b_out_G  # out put weighted sum
         #        output_2d = tf.multiply(tf.nn.tanh(logits_2d), scale_out_G)
-        output_2d = tf.nn.tanh(logits_2d) # logits operation [-1, 1]
+        output_2d = tf.nn.tanh(logits_2d)  # logits operation [-1, 1]
         output_3d = tf.reshape(output_2d, [-1, seq_length, num_signals])
 
     return output_3d
@@ -236,11 +248,11 @@ def discriminator(x, hidden_units_d, seq_length, batch_size, reuse=False, parame
             dtype=tf.float32,
             inputs=inputs)
         # logit_final = tf.matmul(rnn_outputs[:, -1], W_final_D) + b_final_D
-        logits = tf.einsum('ijk,km', rnn_outputs, W_out_D) + b_out_D # output weighted sum
+        logits = tf.einsum('ijk,km', rnn_outputs, W_out_D) + b_out_D  # output weighted sum ,使用符号代替计算
         # real logits or actual output layer?
         # logit is a function that maps probabilities ([0,1]) to ([-inf,inf]) ?
 
-        output = tf.nn.sigmoid(logits) # y = 1 / (1 + exp(-x)). output activation [0, 1]. Probability??
+        output = tf.nn.sigmoid(logits)  # y = 1 / (1 + exp(-x)). output activation [0, 1]. Probability??
         # sigmoid output ([0,1]), Probability?
 
     return output, logits
@@ -282,8 +294,3 @@ def load_parameters(identifier):
     # load_path = './experiments/parameters/' + identifier + '.npy'
     model_parameters = np.load(identifier).item()
     return model_parameters
-
-
-
-
-

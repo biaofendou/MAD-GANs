@@ -34,9 +34,11 @@ data_path = './experiments/data/' + settings['data_load_from'] + '.data.npy'
 print('Loading data from', data_path)
 settings["eval_single"] = False
 settings["eval_an"] = False
-samples, labels, index = data_utils.get_data(settings["data"], settings["seq_length"], settings["seq_step"],
+samples, labels, index = data_utils.get_data(settings["data"], settings["seq_length"], settings["seq_length"],
                                              settings["num_signals"], settings["sub_id"], settings["eval_single"],
                                              settings["eval_an"], data_path)
+print('检测点：',index)
+identifier=settings['identifier']
 # --- save settings, data --- #
 # no need
 print('Ready to run with settings:')
@@ -100,14 +102,14 @@ class myADclass():
         for i in range(2, 8):
             tao = 0.1 * i
             Accu2, Pre2, Rec2, F12 = DR_discriminator.detection_Comb(
-                DL_test, L_mb, I_mb, self.settings['seq_step'], tao)
+                DL_test, L_mb, I_mb, self.settings['seq_length'], tao)
             print('seq_length:', self.settings['seq_length'])
             print('Comb-logits-based-Epoch: {}; tao={:.1}; Accu: {:.4}; Pre: {:.4}; Rec: {:.4}; F1: {:.4}'
                   .format(self.epoch, tao, Accu2, Pre2, Rec2, F12))
             results[i - 2, :] = [Accu2, Pre2, Rec2, F12]
 
             Accu3, Pre3, Rec3, F13 = DR_discriminator.detection_Comb(
-                D_test, L_mb, I_mb, self.settings['seq_step'], tao)
+                D_test, L_mb, I_mb, self.settings['seq_length'], tao)
             print('seq_length:', self.settings['seq_length'])
             print('Comb-statistic-based-Epoch: {}; tao={:.1}; Accu: {:.4}; Pre: {:.4}; Rec: {:.4}; F1: {:.4}'
                   .format(self.epoch, tao, Accu3, Pre3, Rec3, F13))
