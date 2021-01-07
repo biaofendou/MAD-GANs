@@ -26,7 +26,7 @@ parser = utils.rgan_options_parser()
 settings = vars(parser.parse_args())
 # if a settings file is specified, it overrides command line arguments/defaults
 if settings['settings_file']: settings = utils.load_settings_from_file(settings)
-
+identifier=settings["identifier"]
 # --- get data, split --- #
 data_path = './experiments/data/' + settings['data_load_from'] + '.data.npy'
 print('Loading data from', data_path)

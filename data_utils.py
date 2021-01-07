@@ -37,7 +37,7 @@ def swat(seq_length, seq_step, num_signals, randomize=False):
     # train=train.values
     # print('Loaded swat from .csv')
     m, n = train.shape # m=496800, n=52
-    for i in range(n - 1): # 归一化
+    for i in range(n - 1): # 归一化，范围是[-1,1]
         A = max(train[:, i])
         if A != 0:
             train[:, i] /= max(train[:, i])
@@ -75,16 +75,33 @@ def swat(seq_length, seq_step, num_signals, randomize=False):
     pca.fit(X_n)
     ex_var = pca.explained_variance_ratio_
     pc = pca.components_
-
+    print(pc.shape) #(6, 51)
+    print(X_n.shape)#(428319, 51)
     # projected values on the principal component
-    T_n = np.matmul(X_n, pc.transpose(1, 0))
+    T_n = np.matmul(X_n, pc.transpose(1, 0))#transpose(1, 0)调换x,y位置，相当于转置
     samples = T_n
-
+    print('PCA后shape：',samples.shape)#(428319, 6)
     # # only for one-dimensional
     # samples = T_n.reshape([samples.shape[0], ])
     ###########################################
     ###########################################
     # seq_length = 7200
+    '''
+    PCA后shape： (428319, 6)
+    num_samples: 42828
+    shape: (428319, 6)
+    num_signals: 6
+    seq_step: 10
+    seq_length: 30
+    (6, 51)
+    (428319, 51)
+    PCA后shape： (428319, 6)
+    num_samples: 42828
+    shape: (428319, 6)
+    num_signals: 6
+    seq_step: 10
+    seq_length: 30
+    '''
     num_samples = (samples.shape[0]-seq_length)//seq_step
     print("num_samples:", num_samples)
     print("shape:",samples.shape)
@@ -105,7 +122,7 @@ def swat(seq_length, seq_step, num_signals, randomize=False):
     labels = bb
 
     return samples, labels
-
+swat(30,10,6)
 def swat_birgan(seq_length, seq_step, num_signals, randomize=False):
     """ Load and serialise """
     # train = np.load('./data/swat.npy')
